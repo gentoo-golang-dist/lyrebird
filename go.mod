@@ -70,6 +70,6 @@ require (
 	golang.org/x/tools v0.29.0 // indirect
 )
 
-go 1.22.0
+go 1.22
 
 replace github.com/refraction-networking/utls v1.6.7 => gitlab.torproject.org/shelikhoo/utls-temporary v0.0.0-20260114141111-0f042ad603ef
