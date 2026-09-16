@@ -172,6 +172,7 @@ func clientHandler(f base.ClientFactory, conn net.Conn, proxyURI *url.URL) {
 				return
 			}
 			config.CommunicationProxy = proxyURI
+			args = config
 		}
 	}
 	remote, err := f.Dial("tcp", socksReq.Target, dialFn, args)
