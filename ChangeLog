@@ -1,3 +1,7 @@
+Changes in version 0.9.0 - 2026-09-21:
+- Build packages with goreleaser
+- Fix proxy configuration in snowflake
+
 Changes in version 0.8.1 - 2026-01-14:
 - cherry-picked fix for chrome120 imitation profile fix
 
