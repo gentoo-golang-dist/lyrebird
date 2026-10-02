@@ -12,10 +12,13 @@ import (
 	"gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel/transport/tls"
 
 	"gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird/transports/base"
+
+	"gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird/common/dns"
 )
 
 type clientConfig struct {
 	RemoteAddress string
+	RemotePort    string
 
 	Path            string
 	TLSKind         string
@@ -69,14 +72,22 @@ func (c *clientFactory) parseArgs(args *pt.Args) (interface{}, error) {
 		config.Path = strings.TrimPrefix(url.EscapedPath(), "/")
 		config.TLSServerName = url.Hostname()
 		config.HTTPHost = url.Hostname()
-		port := url.Port()
-		if port == "" {
-			port = defaultPort
+		config.RemotePort = url.Port()
+		if config.RemotePort == "" {
+			config.RemotePort = defaultPort
 		}
-		config.RemoteAddress = url.Hostname() + ":" + port
 
 		if remoteAddress, ok := args.Get("addr"); ok {
-			config.RemoteAddress = remoteAddress
+			url, err = url.Parse(fmt.Sprintf("https://%s/", remoteAddress))
+
+			if err != nil {
+				return nil, fmt.Errorf("Parsing 'addr' argument has failed: %v", err)
+			}
+
+			// If 'addr' argument contains an IPv6 address wrapped in square brackets,
+			// url.Hostname() returns the pure IPv6 address without square brackets.
+			config.RemoteAddress = url.Hostname()
+			config.RemotePort = url.Port()
 		}
 
 		config.TLSServerName = url.Hostname()
@@ -127,9 +138,56 @@ func (c *clientFactory) Dial(network, address string, dialFn base.DialFunc, args
 func (c *clientFactory) dial(network, address string, dialFn base.DialFunc, args interface{}) (net.Conn, error) {
 	config := args.(clientConfig)
 
-	conn, err := dialFn("tcp", config.RemoteAddress)
-	if err != nil {
-		return nil, fmt.Errorf("error dialing %s: %v", config.RemoteAddress, err)
+	var conn net.Conn
+	var ipVer uint8
+	var err error
+
+	dial := func(addr string, port string) (net.Conn, uint8, error) {
+		var ipVer uint8 = 4
+
+		if strings.Contains(addr, ":") {
+			ipVer = 6
+			addr = fmt.Sprintf("[%s]", addr)
+		}
+
+		conn, err := dialFn(fmt.Sprintf("tcp%d", ipVer), fmt.Sprintf("%s:%s", addr, port))
+
+		return conn, ipVer, err
+	}
+
+	if config.RemoteAddress != "" {
+		if conn, ipVer, err = dial(config.RemoteAddress, config.RemotePort); err != nil {
+			return nil, fmt.Errorf("IPv%d connection to %s has failed: %v", ipVer, config.HTTPHost, err)
+		}
+
+		pt.Log(pt.LogSeverityNotice, fmt.Sprintf("IPv%d connection to %s has succeeded!", ipVer, config.HTTPHost))
+	} else {
+		connect := func(addrs []string, port string) (net.Conn, uint8, error) {
+			var conn net.Conn
+			var ipVer uint8
+			var err error
+
+			for _, addr := range addrs {
+				if conn, ipVer, err = dial(addr, port); err == nil {
+					break
+				}
+			}
+
+			return conn, ipVer, err
+		}
+
+		ipAddrs, err := dns.LookupHost(config.HTTPHost, dns.DefaultDNSTimeout)
+		if err != nil {
+			return nil, fmt.Errorf("DNS lookup for %s has failed: %v", config.HTTPHost, err)
+		}
+		if len(ipAddrs) == 0 {
+			return nil, fmt.Errorf("The DNS response for %s doesn't contain any IP addresses", config.HTTPHost)
+		}
+		if conn, ipVer, err = connect(ipAddrs, config.RemotePort); err != nil {
+			return nil, fmt.Errorf("All connection attempts to %s have failed: %v", config.HTTPHost, err)
+		}
+
+		pt.Log(pt.LogSeverityNotice, fmt.Sprintf("IPv%d connection to %s has succeeded!", ipVer, config.HTTPHost))
 	}
 
 	var serverName string
@@ -144,7 +202,9 @@ func (c *clientFactory) dial(network, address string, dialFn base.DialFunc, args
 		serverNameGenerator = generator
 	}
 
-	pt.Log(pt.LogSeverityNotice, "Using TLS SNI: "+serverName)
+	if serverName != config.HTTPHost {
+		pt.Log(pt.LogSeverityNotice, fmt.Sprintf("Using TLS SNI %s for host %s", serverName, config.HTTPHost))
+	}
 
 	if config.TLSKind != "" {
 		conf := &tls.Config{ServerName: serverName}
