@@ -8,8 +8,8 @@ require (
 	gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/goptlib v1.6.0
 	gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2 v2.11.0
 	gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel v0.0.3
-	golang.org/x/crypto v0.33.0
-	golang.org/x/net v0.35.0
+	golang.org/x/crypto v0.53.0
+	golang.org/x/net v0.56.0
 )
 
 require (
@@ -63,13 +63,13 @@ require (
 	github.com/xtaci/kcp-go/v5 v5.6.18 // indirect
 	github.com/xtaci/smux v1.5.34 // indirect
 	gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/ptutil v0.0.0-20250130151315-efaf4e0ec0d3 // indirect
-	golang.org/x/mod v0.22.0 // indirect
-	golang.org/x/sync v0.11.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
-	golang.org/x/tools v0.29.0 // indirect
+	golang.org/x/mod v0.36.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/tools v0.45.0 // indirect
 )
 
-go 1.22.0
+go 1.25.0
 
 replace github.com/refraction-networking/utls v1.6.7 => gitlab.torproject.org/shelikhoo/utls-temporary v0.0.0-20260114141111-0f042ad603ef
