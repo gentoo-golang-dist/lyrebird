@@ -47,7 +47,7 @@ nfpms:
       - src: doc/lyrebird.1
         dst: /usr/share/man/man1/
         file_info:
-          mode: 644
+          mode: 0o644
     formats:
       - deb
     deb:
