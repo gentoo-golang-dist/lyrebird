@@ -87,15 +87,15 @@ func TestClientProxy(t *testing.T) {
 		wg.Done()
 	}
 
-	ln, err := net.Listen("tcp", "127.0.0.1:8080")
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 	go func() {
 		_ = clientAcceptLoop(cf, ln, proxyURI)
 	}()
 
-	client, _ := socks5.NewClient("127.0.0.1:8080", encodeArgs(args), "\x00", 0, 0)
+	client, _ := socks5.NewClient(ln.Addr().String(), encodeArgs(args), "\x00", 0, 0)
 	client.Dial("tcp", "127.0.0.1:9090")
 
 	wg.Wait()
